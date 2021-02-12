@@ -53,6 +53,10 @@ let portCounter = 1;
 let port: SerialPort | undefined;
 let reader: ReadableStreamDefaultReader | undefined;
 
+
+let windowInterval: number;
+
+
 const term = new Terminal({
   scrollback: 10_000,
 });
@@ -206,6 +210,19 @@ function markDisconnected(): void {
   stopBitsSelector.disabled = false;
   flowControlCheckbox.disabled = false;
   port = undefined;
+  clearInterval(windowInterval);
+}
+
+const instructions = ["haut", "bas"]
+
+let instructionsEnCours:boolean;
+
+function setInstruction():void {
+  instructionsEnCours = !instructionsEnCours;
+  term.writeln(instructions[instructionsEnCours ? 0 : 1]);
+  console.log(instructions[instructionsEnCours ? 0 : 1]);
+  let myContainer = document.getElementById('test') as HTMLElement;
+  myContainer.innerHTML = instructions[instructionsEnCours ? 0 : 1];
 }
 
 /**
@@ -243,13 +260,15 @@ async function connectToPort(): Promise<void> {
   stopBitsSelector.disabled = true;
   flowControlCheckbox.disabled = true;
   term.writeln('<CONNECTED>');
-
+  windowInterval = window.setInterval(setInstruction, 5000);
+  var enc = new TextDecoder(); // always utf-8
   while (port && port.readable) {
     try {
       reader = port.readable.getReader();
       for (;;) {
         const {value, done} = await reader.read();
         if (value) {
+          console.log(enc.decode(value));
           term.writeUtf8(value);
         }
         if (done) {
